@@ -1,0 +1,40 @@
+.layout-wrapper{
+  height: 100vh;
+  .logo-vertical {
+    height: 32px;
+    margin: 16px;
+    // background-color: rgba(255,255,255,.2);
+    background-size: auto 100%;
+    background-repeat: no-repeat;
+    background-position: center;
+    border-radius: 6px;
+    &.logo_img1{
+      background-image: url(https://img.gaea.kiwisns.com/station-logos/logo-white.png);
+    }
+    &.logo_img2{
+      background-image: url(https://img.gaea.kiwisns.com/station-logos/logo2-white.png);
+    }
+  }
+  .layout-header-wrapper{
+    padding: 0,;
+    background: #fff;
+    display: flex;
+    justify-content: space-between;
+    padding-right: 16px;
+    .menu-collapsed-button{
+      font-size: 16px;
+      width: 64px;
+      height: 64px;
+    }
+  }
+  .layout-content-wrapper{
+    margin: 24px 16px 0 16px;
+    padding: 24px;
+    background: #fff;
+    overflow-y: scroll;
+  }
+  .layout-footer-wrapper{
+    margin: 0 16px;
+    padding: 12px;
+  }
+}

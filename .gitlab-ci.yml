@@ -1,0 +1,76 @@
+.branch_to_build: &btb
+  only:
+  - test@papaya-fpp/fpp-ai-chatbot-dashboard
+  - prod@papaya-fpp/fpp-ai-chatbot-dashboard
+
+.runner: &runner
+  tags:
+  - gaea-storefront-new
+
+.runner: &docker-runner
+  tags:
+  - gaea-docker-share
+
+stages:
+  - build
+  - push
+  - deploy
+
+variables:
+  PROJECT_ID: papaya-store-prod
+  DEPLOY_ENV: $CI_BUILD_REF_NAME
+  PORT: 80
+  MODULE: $CI_PROJECT_NAME
+  REGION: us-central1
+
+build:
+  stage: build
+  <<: *btb
+  <<: *runner
+  script:
+  - docker build
+    --build-arg DEPLOY_ENV=$DEPLOY_ENV
+    -t gcr.io/$PROJECT_ID/$CI_PROJECT_NAME:$DEPLOY_ENV-$CI_PIPELINE_ID
+    -t gcr.io/$PROJECT_ID/$CI_PROJECT_NAME:$DEPLOY_ENV .
+  
+push:
+  stage: push
+  <<: *btb
+  <<: *runner
+  script:
+  - docker push gcr.io/$PROJECT_ID/$CI_PROJECT_NAME:$DEPLOY_ENV-$CI_PIPELINE_ID
+  - docker push gcr.io/$PROJECT_ID/$CI_PROJECT_NAME:$DEPLOY_ENV
+
+deploy_test_on_gke:
+  image: google/cloud-sdk
+  variables:
+    DEPLOY_ENV: test
+    GKE_NAME: gke-gaea-test-usc1-210902
+  stage: deploy
+  <<: *docker-runner
+  script:
+    - export USE_GKE_GCLOUD_AUTH_PLUGIN=True
+    - gcloud container clusters get-credentials $GKE_NAME --region $REGION --project $PROJECT_ID
+    - kubectl set image deployments $CI_PROJECT_NAME-$DEPLOY_ENV
+      $CI_PROJECT_NAME-$DEPLOY_ENV=gcr.io/$PROJECT_ID/$CI_PROJECT_NAME:$DEPLOY_ENV-$CI_PIPELINE_ID
+      --record
+    - kubectl rollout status deployment/$CI_PROJECT_NAME-$DEPLOY_ENV --timeout=300s
+
+  only:
+  - test@papaya-fpp/fpp-ai-chatbot-dashboard
+
+deploy_prod_on_gke:
+  image: google/cloud-sdk
+  variables:
+    GKE_NAME: gke-gaea-prod-usc1-210805
+  stage: deploy
+  <<: *docker-runner
+  script:
+    - export USE_GKE_GCLOUD_AUTH_PLUGIN=True
+    - gcloud container clusters get-credentials $GKE_NAME --region $REGION --project $PROJECT_ID
+    - kubectl set image deployments $CI_PROJECT_NAME-$DEPLOY_ENV
+      $CI_PROJECT_NAME-$DEPLOY_ENV=gcr.io/$PROJECT_ID/$CI_PROJECT_NAME:$DEPLOY_ENV-$CI_PIPELINE_ID
+      --record
+    - kubectl rollout status deployment/$CI_PROJECT_NAME-$DEPLOY_ENV --timeout=300s
+  only:
+  - prod@papaya-fpp/fpp-ai-chatbot-dashboard
